@@ -166,6 +166,11 @@ class Book
         return $this;
     }
 
+    public function clearAuthors()
+    {
+        $this->authors = new ArrayCollection();
+    }
+
     /**
      * @return Collection|Genre[]
      */
@@ -188,5 +193,10 @@ class Book
         $this->genres->removeElement($genre);
 
         return $this;
+    }
+
+    public function clearGenres()
+    {
+        $this->genres = new ArrayCollection();
     }
 }

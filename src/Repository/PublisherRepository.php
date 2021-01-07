@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Publisher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -14,37 +15,25 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class PublisherRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    private $manager;
+
+    public function __construct(ManagerRegistry $registry, EntityManagerInterface $manager)
     {
         parent::__construct($registry, Publisher::class);
+        $this->manager = $manager;
     }
 
-    // /**
-    //  * @return Publisher[] Returns an array of Publisher objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function savePublisher(Publisher $publisher): Publisher
     {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('p.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+        $this->manager->persist($publisher);
+        $this->manager->flush();
 
-    /*
-    public function findOneBySomeField($value): ?Publisher
-    {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return $publisher;
     }
-    */
+
+    public function removePublisher(Publisher $publisher): void
+    {
+        $this->manager->remove($publisher);
+        $this->manager->flush();
+    }
 }
