@@ -20,7 +20,7 @@ class Genre
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, unique=true)
      */
     private $name;
 
@@ -37,6 +37,7 @@ class Genre
 
     /**
      * @ORM\ManyToMany(targetEntity=Book::class, mappedBy="genres")
+     * @ORM\JoinColumn(nullable=false)
      */
     private $books;
 
