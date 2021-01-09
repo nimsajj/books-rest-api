@@ -19,6 +19,7 @@
         "symfony/maker-bundle": "^1.26",
         "symfony/property-access": "5.2.*",
         "symfony/serializer": "5.2.*",
+        "symfony/validator": "5.2.*",
         "symfony/yaml": "5.2.*"
     },
     "config": {
