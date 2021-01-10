@@ -146,7 +146,7 @@ class BookController extends AbstractController
     }
 
     /**
-     * @Route("/api/books/{id}/genres", name="getAuthorsByBook", methods={"GET"})
+     * @Route("/api/books/{id}/genres", name="getGenresByBook", methods={"GET"})
      */
     public function getGenresByBook(int $id): Response
     {
