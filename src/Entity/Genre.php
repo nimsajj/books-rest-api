@@ -6,9 +6,12 @@ use App\Repository\GenreRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=GenreRepository::class)
+ * @UniqueEntity("name")
  */
 class Genre
 {
@@ -21,6 +24,8 @@ class Genre
 
     /**
      * @ORM\Column(type="string", length=255, unique=true)
+     * @Assert\NotBlank
+     * @Assert\Type("string")
      */
     private $name;
 
@@ -37,7 +42,6 @@ class Genre
 
     /**
      * @ORM\ManyToMany(targetEntity=Book::class, mappedBy="genres")
-     * @ORM\JoinColumn(nullable=false)
      */
     private $books;
 

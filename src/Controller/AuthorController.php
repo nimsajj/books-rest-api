@@ -8,7 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class AuthorController extends AbstractController
 {
@@ -22,42 +22,41 @@ class AuthorController extends AbstractController
     /**
      * @Route("/api/authors", name="addAuthor", methods={"POST"})
      */
-    public function addAuthor(Request $request): Response
+    public function addAuthor(Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
-        if (empty($data['firstName']) || empty($data['lastName'])) {
-            return $this->json(['error' => 'Expecting mandatory parameters!'], Response::HTTP_ACCEPTED);
+        $author = $this->authorRepository->build($data);
+
+        $errors = $validator->validate($author);
+
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $author = new Author();
-        $author
-            ->setFirstName($data['firstName'])
-            ->setLastName($data['lastName']);
+        $authorCreated = $this->authorRepository->save($author);
 
-        if (!empty($data['middleName'])) {
-            $author->setMiddleName($data['middleName']);
-        }
-
-        $authorCreated = $this->authorRepository->saveAuthor($author);
-
-        return $this->json($authorCreated, Response::HTTP_CREATED);
+        return $this->json($authorCreated, Response::HTTP_CREATED,);
     }
 
     /**
      * @Route("/api/authors/{id}", name="updateAuthor", methods={"PUT"})
      */
-    public function updateAuthor(int $id, Request $request): Response
+    public function updateAuthor(int $id, Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
-        $author = $this->authorRepository->findOneBy(['id' => $id]);
+        $currentAuthor = $this->authorRepository->findOneBy(['id' => $id]);
 
-        empty($data['firstName']) ? true : $author->setFirstName($data['firstName']);
-        empty($data['lastName']) ? true : $author->setLastName($data['lastName']);
-        empty($data['middleName']) ? true : $author->setMiddleName($data['middleName']);
+        $author = $this->authorRepository->buildIfInformed($data, $currentAuthor);
 
-        $updatedAuthor = $this->authorRepository->saveAuthor($author);
+        $errors = $validator->validate($author);
+
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $updatedAuthor = $this->authorRepository->save($author);
 
         return $this->json($updatedAuthor, Response::HTTP_OK);
     }
@@ -73,7 +72,7 @@ class AuthorController extends AbstractController
             return $this->json(['error' => 'Not found', Response::HTTP_NOT_FOUND]);
         }
 
-        $this->authorRepository->removeAuthor($author);
+        $this->authorRepository->remove($author);
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }

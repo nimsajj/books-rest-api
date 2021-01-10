@@ -23,7 +23,24 @@ class PublisherRepository extends ServiceEntityRepository
         $this->manager = $manager;
     }
 
-    public function savePublisher(Publisher $publisher): Publisher
+    public function build(array $data): Publisher
+    {
+        $name = $data['name'] ?? '';
+
+        $publisher = new Publisher();
+
+        return $publisher
+            ->setName($name);
+    }
+
+    public function buildIfInformed($data, Publisher $publisher): Publisher
+    {
+        empty($data['name']) ? true : $publisher->setName($data['name']);
+
+        return $publisher;
+    }
+
+    public function save(Publisher $publisher): Publisher
     {
         $this->manager->persist($publisher);
         $this->manager->flush();
@@ -31,7 +48,7 @@ class PublisherRepository extends ServiceEntityRepository
         return $publisher;
     }
 
-    public function removePublisher(Publisher $publisher): void
+    public function remove(Publisher $publisher): void
     {
         $this->manager->remove($publisher);
         $this->manager->flush();

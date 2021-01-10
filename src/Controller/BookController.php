@@ -2,81 +2,54 @@
 
 namespace App\Controller;
 
-use App\Entity\Book;
-use App\Repository\AuthorRepository;
 use App\Repository\BookRepository;
-use App\Repository\GenreRepository;
-use App\Repository\PublisherRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class BookController extends AbstractController
 {
     private $bookRepository;
-    private $publisherRepository;
-    private $authorRepository;
-    private $genreRepository;
 
-    public function __construct(BookRepository $bookRepository, PublisherRepository $publisherRepository, AuthorRepository $authorRepository, GenreRepository $genreRepository)
+    public function __construct(BookRepository $bookRepository)
     {
         $this->bookRepository = $bookRepository;
-        $this->publisherRepository = $publisherRepository;
-        $this->authorRepository = $authorRepository;
-        $this->genreRepository = $genreRepository;
     }
 
     /**
      * @Route("/api/books", name="addBook", methods={"POST"})
      */
-    public function addBook(Request $request): Response
+    public function addBook(Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
         if (empty($data['title']) || empty($data['totalPages']) || empty($data['isbn']) || empty($data['publishedAt']) || empty($data['publisherId']) || empty($data['authorIds']) || empty($data['genreIds'])) {
-            return $this->json(['error' => 'Expecting mandatory parameters!'], Response::HTTP_ACCEPTED);
+            return $this->json(['error' => 'Expecting mandatory parameters!'], Response::HTTP_PAYMENT_REQUIRED);
         }
 
-        $publisher = $this->publisherRepository->findOneBy(['id' => $data['publisherId']]);
+        $book = $this->bookRepository->build($data);
 
-        if (empty($publisher)) {
-            return $this->json(['error' => 'Publisher is required'], Response::HTTP_ACCEPTED);
+        if (empty($book->getPublisher())) {
+            return $this->json(['error' => 'Publisher is required'], Response::HTTP_NOT_FOUND);
         }
 
-        $authors = $this->authorRepository->findBy(['id' => $data['authorIds']]);
-
-        if (empty($authors)) {
-            return $this->json(['error' => 'One or many author is required'], Response::HTTP_ACCEPTED);
+        if ($book->getAuthors()->isEmpty()) {
+            return $this->json(['error' => 'One or many author is required'], Response::HTTP_NOT_FOUND);
         }
 
-        $genres = $this->genreRepository->findBy(['id' => $data['genreIds']]);
-
-        if (empty($genres)) {
-            return $this->json(['error' => 'One or many genre is required'], Response::HTTP_ACCEPTED);
+        if ($book->getGenres()->isEmpty()) {
+            return $this->json(['error' => 'One or many genre is required'], Response::HTTP_NOT_FOUND);
         }
 
-        $book = new Book();
-        $book->setTitle($data['title'])
-            ->setTotalPages($data['totalPages'])
-            ->setIsbn($data['isbn'])
-            ->setPublishedAt(new \DateTime($data['publishedAt']))
-            ->setPublisher($publisher);
+        $errors = $validator->validate($book);
 
-        if (!empty($data['rating'])) {
-            $book->setRating($data['rating']);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        foreach ($authors as $author) {
-            $book->addAuthor($author);
-        }
-
-        foreach ($genres as $genre) {
-            $book->addGenre($genre);
-        }
-
-        $bookCreated = $this->bookRepository->saveBook($book);
+        $bookCreated = $this->bookRepository->save($book);
 
         return $this->json($bookCreated, Response::HTTP_CREATED, [], ['ignored_attributes' => ['books', 'parent', 'children']]);
     }
@@ -84,60 +57,38 @@ class BookController extends AbstractController
     /**
      * @Route("/api/books/{id}", name="updateBook", methods={"PUT"})
      */
-    public function updateBook(int $id, Request $request): Response
+    public function updateBook(int $id, Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
-        $book = $this->bookRepository->findOneBy(['id' => $id]);
-        if (empty($book)) {
+        $currentBook = $this->bookRepository->findOneBy(['id' => $id]);
+        if (empty($currentBook)) {
             return $this->json(['error' => 'Not found'], Response::HTTP_NOT_FOUND);
         }
 
-        empty($data['isbn']) ? true : $book->setIsbn($data['isbn']);
-        empty($data['title']) ? true : $book->setTitle($data['title']);
-        empty($data['totalPages']) ? true : $book->setTotalPages($data['totalPages']);
-        empty($data['publishedAt']) ? true : $book->setPublishedAt(new \DateTime($data['publishedAt']));
-        empty($data['rating']) ? true : $book->setRating($data['rating']);
+        $book = $this->bookRepository->buildIfInformed($data, $currentBook);
 
-        if (!empty($data['publisherId']) && $data['publisherId'] !== $book->getPublisher()->getId()) {
-            $publisher = $this->publisherRepository->findOneBy(['id' => $data['publisherId']]);
-
-            if (empty($publisher)) {
-                return $this->json(['error' => 'Publisher not found'], Response::HTTP_NOT_FOUND);
-            }
-
-            $book->setPublisher($publisher);
+        if (empty($book->getPublisher())) {
+            return $this->json(['error' => 'Publisher not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!empty($data['authorIds'])) {
-            $authors = $this->authorRepository->findBy(['id' => $data['authorIds']]);
-
-            if (empty($authors)) {
-                return $this->json(['error' => 'Author(s) not found'], Response::HTTP_NOT_FOUND);
-            }
-
-            $book->clearAuthors();
-            foreach ($authors as $author) {
-                $book->addAuthor($author);
-            }
+        if ($book->getAuthors()->isEmpty()) {
+            return $this->json(['error' => 'Author(s) not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!empty($data['genreIds'])) {
-            $genres = $this->genreRepository->findBy(['id' => $data['genreIds']]);
-
-            if (empty($genres)) {
-                return $this->json(['error' => 'Genre(s) not found'], Response::HTTP_NOT_FOUND);
-            }
-
-            $book->clearGenres();
-            foreach ($genres as $genre) {
-                $book->addGenre($genre);
-            }
+        if ($book->getGenres()->isEmpty()) {
+            return $this->json(['error' => 'Genre(s) not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $bookUpdated = $this->bookRepository->saveBook($book);
+        $errors = $validator->validate($book);
 
-        return $this->json($bookUpdated, Response::HTTP_CREATED, [], ['ignored_attributes' => ['books', 'parent', 'children']]);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $bookUpdated = $this->bookRepository->save($book);
+
+        return $this->json($bookUpdated, Response::HTTP_OK, [], ['ignored_attributes' => ['books', 'parent', 'children']]);
     }
 
     /**
@@ -151,7 +102,7 @@ class BookController extends AbstractController
             return $this->json(['error' => 'Not found', Response::HTTP_NOT_FOUND]);
         }
 
-        $this->bookRepository->removeBook($book);
+        $this->bookRepository->remove($book);
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }

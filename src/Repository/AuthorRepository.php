@@ -23,7 +23,32 @@ class AuthorRepository extends ServiceEntityRepository
         $this->manager = $manager;
     }
 
-    public function saveAuthor(Author $author): Author
+    public function build(array $data): Author
+    {
+        $author =  new Author();
+
+        $firstName = $data['firstName'] ??  "";
+        $lastName = $data['lastName'] ?? "";
+        $middleName = $data['middleName'] ??  "";
+
+        $author
+            ->setFirstName($firstName)
+            ->setLastName($lastName)
+            ->setMiddleName($middleName);
+
+        return $author;
+    }
+
+    public function buildIfInformed($data, Author $author): Author
+    {
+        empty($data['firstName']) ? true : $author->setFirstName($data['firstName']);
+        empty($data['lastName']) ? true : $author->setLastName($data['lastName']);
+        empty($data['middleName']) ? true : $author->setMiddleName($data['middleName']);
+
+        return $author;
+    }
+
+    public function save(Author $author): Author
     {
         $this->manager->persist($author);
         $this->manager->flush();
@@ -31,7 +56,7 @@ class AuthorRepository extends ServiceEntityRepository
         return $author;
     }
 
-    public function removeAuthor(Author $author): void
+    public function remove(Author $author): void
     {
         $this->manager->remove($author);
         $this->manager->flush();

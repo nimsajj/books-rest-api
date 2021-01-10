@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class GenreController extends AbstractController
 {
@@ -21,27 +22,18 @@ class GenreController extends AbstractController
     /**
      * @Route("/api/genres", name="addGenre", methods={"POST"})
      */
-    public function addGenre(Request $request): Response
+    public function addGenre(Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
-        if (empty($data['name'])) {
-            return $this->json(['error' => 'Expecting mandatory parameters!'], Response::HTTP_ACCEPTED);
+        $genre = $this->genreRepository->build($data);
+
+        $errors = $validator->validate($genre);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $genre = new Genre();
-        $genre
-            ->setName($data['name']);
-
-        if (!empty($data['parent'])) {
-            $parent = $this->genreRepository->findOneBy(['name' => $data['parent']]);
-
-            if ($parent) {
-                $genre->setParent($parent);
-            }
-        }
-
-        $genreCreated = $this->genreRepository->saveGenre($genre);
+        $genreCreated = $this->genreRepository->save($genre);
 
         return $this->json($genreCreated, Response::HTTP_CREATED, [], ['ignored_attributes' => ['books', 'children']]);
     }
@@ -49,25 +41,22 @@ class GenreController extends AbstractController
     /**
      * @Route("/api/genres/{id}", name="updateGenre", methods={"PUT"})
      */
-    public function updateGenre(int $id, Request $request): Response
+    public function updateGenre(int $id, Request $request, ValidatorInterface $validator): Response
     {
         $data = json_decode($request->getContent(), true);
 
-        $genre = $this->genreRepository->findOneBy(['id' => $id]);
+        $currentGenre = $this->genreRepository->findOneBy(['id' => $id]);
 
-        empty($data['name']) ? true : $genre->setName($data['name']);
+        $genre = $this->genreRepository->buildIfInformed($data, $currentGenre);
 
-        if (!empty($data['parent'])) {
-            $parent = $this->genreRepository->findOneBy(['name' => $data['parent']]);
-
-            if ($parent) {
-                $genre->setParent($parent);
-            }
+        $errors = $validator->validate($genre);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $genreUpdated = $this->genreRepository->saveGenre($genre);
+        $genreUpdated = $this->genreRepository->save($genre);
 
-        return $this->json($genreUpdated, Response::HTTP_OK, [], ['ignored_attributes' => ['books', 'children', 'parent']]);
+        return $this->json($genreUpdated, Response::HTTP_OK, [], ['ignored_attributes' => ['books', 'children']]);
     }
 
     /**
@@ -81,7 +70,7 @@ class GenreController extends AbstractController
             return $this->json(['error' => 'Not found', Response::HTTP_NOT_FOUND]);
         }
 
-        $this->genreRepository->removeGenre($genre);
+        $this->genreRepository->remove($genre);
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }

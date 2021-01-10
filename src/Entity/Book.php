@@ -6,9 +6,12 @@ use App\Repository\BookRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @ORM\Entity(repositoryClass=BookRepository::class)
+ * @UniqueEntity("isbn")
  */
 class Book
 {
@@ -21,26 +24,36 @@ class Book
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\NotBlank
      */
     private $title;
 
     /**
      * @ORM\Column(type="integer", nullable=true)
+     * @Assert\PositiveOrZero
      */
     private $total_pages;
 
     /**
      * @ORM\Column(type="decimal", precision=4, scale=2, nullable=true)
+     * @Assert\Range(
+     *      min = 0,
+     *      max = 10,
+     *      notInRangeMessage = "You must be between {{ min }} and {{ max }} tall to enter",
+     * )
      */
     private $rating;
 
     /**
      * @ORM\Column(type="string", length=13, unique=true)
+     * @Assert\NotBlank
+     * @Assert\Type("string")
      */
     private $isbn;
 
     /**
      * @ORM\Column(type="datetime", nullable=true)
+     * @Assert\NotNull
      */
     private $publishedAt;
 

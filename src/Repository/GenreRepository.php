@@ -23,7 +23,42 @@ class GenreRepository extends ServiceEntityRepository
         $this->manager = $manager;
     }
 
-    public function saveGenre(Genre $genre): Genre
+    public function build(array $data, ?Genre $currentGenre = null): Genre
+    {
+        $genre = $currentGenre ? $currentGenre : new Genre();
+
+        $name = $data['name'] ?? "";
+
+        $genre
+            ->setName($name);
+
+        if (!empty($data['parent'])) {
+            $parent = $this->findOneBy(['name' => $data['parent']]);
+
+            if ($parent) {
+                $genre->setParent($parent);
+            }
+        }
+
+        return $genre;
+    }
+
+    public function buildIfInformed($data, Genre $genre): Genre
+    {
+        empty($data['name']) ? true : $genre->setName($data['name']);
+
+        if (!empty($data['parent'])) {
+            $parent = $this->findOneBy(['name' => $data['parent']]);
+
+            if ($parent) {
+                $genre->setParent($parent);
+            }
+        }
+
+        return $genre;
+    }
+
+    public function save(Genre $genre): Genre
     {
         $this->manager->persist($genre);
         $this->manager->flush();
@@ -31,7 +66,7 @@ class GenreRepository extends ServiceEntityRepository
         return $genre;
     }
 
-    public function removeGenre(Genre $genre): void
+    public function remove(Genre $genre): void
     {
         $this->manager->remove($genre);
         $this->manager->flush();
