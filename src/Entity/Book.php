@@ -72,6 +72,11 @@ class Book
      */
     private $genres;
 
+    /**
+     * @ORM\Column(type="string", length=100, nullable=true)
+     */
+    private $img;
+
     public function __construct()
     {
         $this->authors = new ArrayCollection();
@@ -211,5 +216,17 @@ class Book
     public function clearGenres()
     {
         $this->genres = new ArrayCollection();
+    }
+
+    public function getImg(): ?string
+    {
+        return $this->img;
+    }
+
+    public function setImg(?string $img): self
+    {
+        $this->img = $img;
+
+        return $this;
     }
 }

@@ -110,7 +110,7 @@ class PublisherController extends AbstractController
     }
 
     /**
-     * @Route("/api/publishers/{id}/books", name="getBooksByGenre", methods={"GET"})
+     * @Route("/api/publishers/{id}/books", name="getBooksByPublisher", methods={"GET"})
      */
     public function getBooksByPublisher(int $id): Response
     {

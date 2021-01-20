@@ -24,7 +24,7 @@ class BookFixtures extends BaseFixture implements DependentFixtureInterface
             $book->setRating($this->faker->randomFloat(2, 0, 5));
             $book->setIsbn($this->faker->ean13);
             $book->setPublishedAt($this->faker->dateTime());
-
+            $book->setImg($this->faker->imageUrl(640, 480, 'books'));
             if ($i < 5) {
                 $book->setPublisher($publishers[0]);
             }
